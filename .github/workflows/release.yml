@@ -5,6 +5,7 @@ on:
     tags:
       - 'v*.*.*' 
   pull_request:
+  schedule:
     - cron: "1 1 * * *"
 
 jobs:
