@@ -1,4 +1,5 @@
 #include "core/check.h"
+#include "core/log.h"
 #include "core/thread.h"
 #include "furi_hal_region.h"
 #include "furi_hal_resources.h"
@@ -9,15 +10,20 @@
 #include <gui/elements.h>
 #include <gui/gui.h>
 #include <lib/subghz/subghz_tx_rx_worker.h>
+#include <stdint.h>
 #include <subghz/devices/devices.h>
 
 #define SNPRINTF_FREQUENCY(buff, freq)                                         \
   snprintf(buff, sizeof(buff), "%03u.%03u", freq / 1000000 % 1000,             \
            freq / 1000 % 1000);
 
+#define DEBUG(...) FURI_LOG_D("JamRF", __VA_ARGS__);
+#define ERROR(...) FURI_LOG_E("JamRF", __VA_ARGS__);
+#define INFO(...) FURI_LOG_I("JamRF", __VA_ARGS__);
+
 typedef struct {
   size_t frequency_idx;
-  bool active;
+  volatile bool active;
 
   const SubGhzDevice *subghz_device;
   SubGhzTxRxWorker *subghz_txrx;
@@ -81,8 +87,10 @@ static int32_t jammer_tx_thread(void *ctx) {
   furi_hal_random_fill_buf(data, sizeof(data));
 
   while (app->model->active && app->model->subghz_txrx) {
+    INFO("Sending data");
     if (!subghz_tx_rx_worker_write(app->model->subghz_txrx, data,
                                    sizeof(data))) {
+      ERROR("Error sending data");
       furi_delay_ms(20);
     }
     furi_delay_ms(10);
@@ -95,16 +103,19 @@ static void jammer_adjust_frequency(JamRF *app, bool up) {
   if (up) {
     if (app->model->frequency_idx < NUM_FREQS - 1) {
       app->model->frequency_idx++;
+      INFO("Adjusted frequency up");
     }
   } else {
     if (app->model->frequency_idx > 0) {
       app->model->frequency_idx--;
+      INFO("Adjusted frequency down");
     }
   }
 }
 
 static bool jammer_start(JamRF *app) {
-  furi_assert(!app->model->active);
+  furi_assert(app->model->active);
+  INFO("Jammer started");
 
   app->model->tx_thread = furi_thread_alloc();
   furi_thread_set_name(app->model->tx_thread, "Jamming transmit");
@@ -120,6 +131,8 @@ static bool jammer_start(JamRF *app) {
 }
 
 static void jammer_stop(JamRF *app) {
+  furi_assert(!app->model->active);
+
   if (subghz_tx_rx_worker_is_running(app->model->subghz_txrx)) {
     subghz_tx_rx_worker_stop(app->model->subghz_txrx);
   }
@@ -147,6 +160,8 @@ static JamRF *jamrf_alloc() {
     app->model->subghz_device =
         radio_device_loader_set(NULL, SubGhzRadioDeviceTypeInternal);
   }
+
+  furi_assert(app->model->subghz_device != NULL);
 
   subghz_devices_reset(app->model->subghz_device);
   subghz_devices_idle(app->model->subghz_device);
@@ -222,30 +237,39 @@ int32_t jamrf_app(void *p) {
                FuriStatusOk);
 
     if (input.key == InputKeyOk && input.type == InputTypePress) {
+      if (app->model->active) {
+        app->model->active = false;
+        jammer_stop(app);
+
+        goto cleanup;
+      }
+
+      // if inactive
+      INFO("Attempting Freq: %03u.%03u",
+           frequencies[app->model->frequency_idx] / 1000000 % 1000,
+           frequencies[app->model->frequency_idx] / 1000 % 1000);
+
       if (!furi_hal_region_is_frequency_allowed(
               frequencies[app->model->frequency_idx])) {
-        continue;
+        goto cleanup;
       }
 
-      app->model->active = !app->model->active;
+      app->model->active = true;
 
-      if (app->model->active) {
-        jammer_start(app);
-      } else {
-        jammer_stop(app);
+      if (!jammer_start(app)) {
+        ERROR("Error starting jammer");
+        break;
       }
-    }
-
-    if (!app->model->active &&
-        (input.type == InputTypePress || input.type == InputTypeRepeat)) {
+    } else if (!app->model->active && (input.type == InputTypePress ||
+                                       input.type == InputTypeRepeat)) {
       if (input.key == InputKeyLeft) {
         jammer_adjust_frequency(app, false);
-      }
-      if (input.key == InputKeyRight) {
+      } else if (input.key == InputKeyRight) {
         jammer_adjust_frequency(app, true);
       }
     }
 
+  cleanup:
     furi_mutex_release(app->model_mutex);
     view_port_update(app->view_port);
   }
