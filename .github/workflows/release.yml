@@ -34,7 +34,7 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.repository }}-${{ steps.build-app.outputs.suffix }}
+          name: ${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}
           path: ${{ steps.build-app.outputs.fap-artifacts }}
 
       - name: Create GitHub Release
@@ -43,4 +43,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: ${{ steps.build-app.outputs.fap-artifacts }}/${{ github.repository }}-${{ steps.build-app.outputs.suffix }}
+          files: ${{ steps.build-app.outputs.fap-artifacts }}/${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}
