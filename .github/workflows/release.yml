@@ -1,0 +1,59 @@
+name: "FAP: Build and Release for multiple SDK sources"
+
+on:
+  push:
+    tags:
+      - 'v*.*.*' 
+
+jobs:
+  ufbt-build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # FAP Channels; see ufbt action docs for more info
+          - name: dev channel
+            sdk-channel: dev
+          - name: release channel
+            sdk-channel: release
+
+    name: 'ufbt: Build for ${{ matrix.name }}'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build with ufbt
+        id: build-app
+        uses: flipperdevices/flipperzero-ufbt-action@v0.1
+        with:
+          sdk-channel: ${{ matrix.sdk-channel }}
+
+      #- name: Upload build artifact
+        #  uses: actions/upload-artifact@v4
+        #with:
+          #  name: ${{ github.repository }}-${{ steps.build-app.outputs.suffix }}
+          #path: ${{ steps.build-app.outputs.fap-artifacts }}
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }} 
+          release_name: Release ${{ github.ref }}
+          body: "Automated release based on latest build outputs from ${{ matrix.name }}."
+          draft: false
+          prerelease: false
+
+      # Upload the build output as a release asset.
+      # Ensure the built artifact is in a suitable format (for example, a zip file) for attachment.
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.build-app.outputs.fap-artifacts }}
+          asset_name: ${{ github.repository }}-${{ steps.build-app.outputs.suffix }}.zip
+          asset_content_type: application/zip
