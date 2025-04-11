@@ -1,5 +1,6 @@
 #include "core/check.h"
 #include "core/thread.h"
+#include "furi_hal_region.h"
 #include "furi_hal_resources.h"
 #include "helpers/radio_device_loader.h"
 #include "input/input.h"
@@ -221,6 +222,11 @@ int32_t jamrf_app(void *p) {
                FuriStatusOk);
 
     if (input.key == InputKeyOk && input.type == InputTypePress) {
+      if (!furi_hal_region_is_frequency_allowed(
+              frequencies[app->model->frequency_idx])) {
+        continue;
+      }
+
       app->model->active = !app->model->active;
 
       if (app->model->active) {

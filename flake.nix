@@ -31,8 +31,6 @@
             ([
               pkgs.pkg-config
               pkgs.ncurses
-              #    pkgs.clang
-              #pkgs.llvmPackages.libclang
 
               (python.withPackages (python-pkgs: with python-pkgs; [
                 setuptools-git-versioning
@@ -44,19 +42,17 @@
             ])
           );
 
-          #          FBT_TOOLCHAIN_PATH=/home/user/.ufbt source /home/user/.ufbt/current/scripts/toolchain/fbtenv.sh
           profile = ''
-            export FHS=1
+            export FHS=1;
+            export FBT_TOOLCHAIN_PATH=$HOME/.ufbt
           '';
-          #          export LIBCLANG_PATH="${pkgs.llvmPackages.libclang}/lib"
           runScript = ''
-            zsh -i -c "FBT_TOOLCHAIN_PATH=/home/user/.ufbt source /home/user/.ufbt/current/scripts/toolchain/fbtenv.sh; exec zsh"
+            zsh -i -c "source $FBT_TOOLCHAIN_PATH/current/scripts/toolchain/fbtenv.sh; exec zsh"
           '';
           extraOutputsToInstall = [ "dev" ];
         }
       );
     in {
       devShells."${system}".default = fhs.env;
-      # stdenv = pkgs.clangStdenv;
     };
 }
