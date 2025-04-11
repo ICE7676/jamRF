@@ -13,6 +13,9 @@ Select your frequency with the `<` and `>` buttons, then press `Ok` to start jam
 > [!CAUTION]
 > Jamming for a long time may damage the CC1101 inside of the Flipper, please use with caution.
 
+> [!NOTE]
+> The range of the flipper zero's built in antenna is ~20ft for low power jamming. Add an external CC1101 for more range, the app will automatically select it if it is properly configured within the firmware.
+
 ## Saftey
 
 > [!WARNING]
