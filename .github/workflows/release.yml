@@ -1,4 +1,4 @@
-name: "FAP: Build and Release for multiple SDK sources"
+name: "FAP: Build"
 
 on:
   push:
@@ -36,11 +36,3 @@ jobs:
         with:
           name: ${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}
           path: ${{ steps.build-app.outputs.fap-artifacts }}
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        if: github.ref_type == 'tag'  
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          files: ${{ steps.build-app.outputs.fap-artifacts }}/${{ github.event.repository.name }}-${{ steps.build-app.outputs.suffix }}
