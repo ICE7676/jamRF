@@ -26,7 +26,6 @@ jobs:
         ufbt
 
     - name: Upload .fap
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2
       with:
-        name: fap-file
-        path: dist/*.fap
+        name
