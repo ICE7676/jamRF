@@ -14,7 +14,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.11
+          python-version: '3.11'
 
       - name: Install ufbt
         run: |
@@ -25,7 +25,8 @@ jobs:
           ufbt update
           ufbt
 
-      - name: Upload .fap
-        uses: actions/upload-artifact@v2
+      - name: Upload .fap file
+        uses: actions/upload-artifact@v2.2.4
         with:
           name: fap-file
+          path: dist/
