@@ -1,0 +1,32 @@
+name: Build FAP
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    - name: Install ufbt
+      run: |
+        python3 -m pip install --upgrade ufbt
+
+    - name: Build app
+      run: |
+        ufbt update
+        ufbt
+
+    - name: Upload .fap
+      uses: actions/upload-artifact@v3
+      with:
+        name: fap-file
+        path: dist/*.fap
